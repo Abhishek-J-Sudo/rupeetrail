@@ -55,8 +55,8 @@ _KNOWN_KEYWORD_PATTERNS = [
 def clean_merchant_name(merchant: str) -> str:
     """
     'Groww Invest Tech Pv Groww.Brk' -> 'Groww Invest Tech Pv'
-    'Salim Khan Paytmqr5abcde'        -> 'Salim Khan'
-    'Sai Pet Care Wareanilk'         -> 'Sai Pet Care'
+    'Arjun Mehta Paytmqr5abcde'      -> 'Arjun Mehta'
+    'Happy Paws Store Petsramesh'    -> 'Happy Paws Store'
     Drops tokens with digits, dots, @ or underscores (UPI handles, refs, IDs), and long
     run-together tokens after the first word, which are UPI handles that often hold a person's name.
     """
