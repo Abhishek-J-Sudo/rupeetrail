@@ -1,11 +1,13 @@
 import { createPortal } from 'react-dom';
 import { motion } from 'motion/react';
+import RailSettings from './RailSettings';
 import { spring } from '@/theme/motion';
 import { cn } from '@/lib/utils';
 import { SECTIONS, goToSection } from './sections';
 
 // Floating section list for wide screens: the brand trail running down the edge, one stop per
-// section. The current section's stop fills teal; hovering a stop shows its name.
+// section. The current section's stop fills teal; hovering a stop shows its name. Past the
+// orange end stop, a small settings button (theme, rail side).
 // Rendered into <body>: the page transition's transform would otherwise break `fixed`.
 export default function SectionRail({ active, side = 'right' }) {
   const right = side === 'right';
@@ -29,7 +31,7 @@ export default function SectionRail({ active, side = 'right' }) {
                 aria-label={label}
                 aria-current={current ? 'location' : undefined}
                 className={cn(
-                  'group relative flex size-10 items-center justify-center rounded-full bg-surface shadow-card ring-1 ring-line outline-none transition-colors duration-fast focus-visible:ring-2 focus-visible:ring-accent',
+                  'group relative flex size-10 items-center justify-center rounded-full bg-surface shadow-card ring-1 ring-line outline-none transition-[color,transform] duration-fast ease-out hover:scale-110 focus-visible:ring-2 focus-visible:ring-accent',
                   current ? 'text-accent-fg' : 'text-ink-muted hover:text-accent'
                 )}
               >
@@ -51,6 +53,9 @@ export default function SectionRail({ active, side = 'right' }) {
         })}
         <li aria-hidden="true" className="pt-0.5">
           <span className="block size-2.5 rounded-full bg-cta" />
+        </li>
+        <li className="pt-3">
+          <RailSettings side={side} />
         </li>
       </ul>
     </nav>,

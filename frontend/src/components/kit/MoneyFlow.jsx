@@ -8,6 +8,8 @@ import { countUp, stagger } from '@/theme/motion';
 // account" to balance them (mark those `muted` for a fainter ribbon).
 // Items: { key, label, amount, color, muted? } where color is any CSS
 // colour, e.g. categoryColor('Groceries'), so the chart follows the theme without re-reading tokens.
+// Pointing at a ribbon or a node highlights that path, fades the rest and shows its share of
+// the total in the label over the middle bar.
 
 const BAR = 10;
 const PAD_TOP = 26; // room for the label over the middle bar
@@ -53,7 +55,7 @@ function ribbons(nodes, side, { nodeX, midX, midY }) {
   return nodes.map((n) => {
     const d = side === 'in' ? ribbon(nodeX + BAR, n.y, midX, y, n.h) : ribbon(midX + BAR, y, nodeX, n.y, n.h);
     y += n.h;
-    return { key: `${side}-${n.key}`, d, color: n.color, muted: n.muted };
+    return { key: `${side}-${n.key}`, node: n.key, d, color: n.color, muted: n.muted };
   });
 }
 
@@ -115,6 +117,17 @@ export default function MoneyFlow({ sources, outflows, centerLabel, ariaLabel })
   ];
   const delay = stagger(flows.length);
 
+  const [focus, setFocus] = useState(null);
+  const focused = focus && [...left, ...right].find((n) => n.key === focus);
+  const hover = (key) => ({ onPointerEnter: () => setFocus(key), onPointerLeave: () => setFocus(null) });
+  const fade = { transition: 'opacity var(--rt-dur-base) var(--rt-ease-out)' };
+  const dim = (key) => (focus && key !== focus ? 0.4 : 1);
+  const ribbonOpacity = (r) => {
+    if (!focus) return r.muted ? 0.12 : 0.28;
+    if (r.node !== focus) return 0.06;
+    return r.muted ? 0.3 : 0.6;
+  };
+
   return (
     <div ref={ref} className="w-full">
       {width > 0 && (
@@ -123,8 +136,8 @@ export default function MoneyFlow({ sources, outflows, centerLabel, ariaLabel })
             <motion.path
               key={r.key}
               d={r.d}
-              style={{ fill: r.color }}
-              fillOpacity={r.muted ? 0.12 : 0.28}
+              {...hover(r.node)}
+              style={{ fill: r.color, fillOpacity: ribbonOpacity(r), transition: 'fill-opacity var(--rt-dur-base) var(--rt-ease-out)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ ...countUp, delay: i * delay }}
@@ -133,22 +146,35 @@ export default function MoneyFlow({ sources, outflows, centerLabel, ariaLabel })
 
           <rect x={midX} y={mid.y} width={BAR} height={Math.max(mid.h, 2)} rx="2" className="fill-accent" />
           <text x={midX + BAR / 2} y={PAD_TOP - 10} textAnchor="middle" fontSize={compact ? 11 : 12}>
-            <tspan className="fill-ink" fontWeight="600">
-              {centerLabel}
-            </tspan>
-            <tspan dx="5" className="fill-ink-muted">
-              {formatINR(total)}
-            </tspan>
+            {focused ? (
+              <>
+                <tspan className="fill-ink" fontWeight="600">
+                  {truncate(focused.label, 24)}
+                </tspan>
+                <tspan dx="5" className="fill-ink-muted">
+                  {total > 0 ? `${Math.max(1, Math.round((focused.amount / total) * 100))}% of the total` : ''}
+                </tspan>
+              </>
+            ) : (
+              <>
+                <tspan className="fill-ink" fontWeight="600">
+                  {centerLabel}
+                </tspan>
+                <tspan dx="5" className="fill-ink-muted">
+                  {formatINR(total)}
+                </tspan>
+              </>
+            )}
           </text>
 
           {left.map((n) => (
-            <g key={n.key}>
+            <g key={n.key} {...hover(n.key)} opacity={dim(n.key)} style={fade}>
               <rect x={leftX} y={n.y} width={BAR} height={Math.max(n.h, 2)} rx="2" style={{ fill: n.color }} />
               <Label x={leftX - 8} y={n.y + n.h / 2} anchor="end" name={n.label} amount={n.amount} compact={compact} />
             </g>
           ))}
           {right.map((n) => (
-            <g key={n.key}>
+            <g key={n.key} {...hover(n.key)} opacity={dim(n.key)} style={fade}>
               <rect x={rightX} y={n.y} width={BAR} height={Math.max(n.h, 2)} rx="2" style={{ fill: n.color }} />
               <Label x={rightX + BAR + 8} y={n.y + n.h / 2} anchor="start" name={n.label} amount={n.amount} compact={compact} />
             </g>

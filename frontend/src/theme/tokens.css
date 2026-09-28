@@ -75,6 +75,10 @@
   --rt-radius-pill: 999px;
   --rt-shadow-card: 0 1px 2px rgb(21 32 36 / 0.04);
   --rt-shadow-pop: 0 12px 32px -8px rgb(21 32 36 / 0.18), 0 2px 6px rgb(21 32 36 / 0.06);
+  /* Soft edge under a fixed header or a card's heading band */
+  --rt-shadow-header: 0 6px 18px -10px rgb(21 32 36 / 0.22);
+  --rt-shadow-band: 0 5px 10px -8px rgb(21 32 36 / 0.16);
+  --rt-shadow-lift: 0 10px 24px -12px rgb(21 32 36 / 0.22), 0 1px 2px rgb(21 32 36 / 0.04);
 
   /* Motion: short, springy, transform/opacity only. JS springs live in theme/motion.js */
   --rt-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -143,6 +147,9 @@
 
     --rt-shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
     --rt-shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.3);
+    --rt-shadow-header: 0 8px 20px -10px rgb(0 0 0 / 0.7);
+    --rt-shadow-band: 0 6px 12px -8px rgb(0 0 0 / 0.6);
+    --rt-shadow-lift: 0 12px 28px -12px rgb(0 0 0 / 0.7), 0 1px 2px rgb(0 0 0 / 0.3);
     color-scheme: dark;
   }
 }
@@ -203,6 +210,9 @@
 
   --rt-shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
   --rt-shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.3);
+  --rt-shadow-header: 0 8px 20px -10px rgb(0 0 0 / 0.7);
+  --rt-shadow-band: 0 6px 12px -8px rgb(0 0 0 / 0.6);
+  --rt-shadow-lift: 0 12px 28px -12px rgb(0 0 0 / 0.7), 0 1px 2px rgb(0 0 0 / 0.3);
   color-scheme: dark;
 }
 

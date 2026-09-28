@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useRef } from 'react';
 import { TrailMark } from '@/components/brand/Route';
 import { LoadingState } from '@/app/StateViews';
 import { usePeriod, usePrefs } from '@/app/hooks';
@@ -15,11 +15,38 @@ const TransactionsSection = lazy(() => import('@/sections/TransactionsSection'))
 
 const IDS = SECTIONS.map((s) => s.id);
 
+// Adds rt-shown the first time the element scrolls into view, so it rises into place once
+// (rt-reveal in index.css; nothing hides or moves under reduced motion).
+function useReveal() {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        el.classList.add('rt-shown');
+        observer.disconnect();
+      },
+      { rootMargin: '0px 0px -8% 0px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
 // One section of the report
 function Section({ id, title, subtitle, children }) {
+  const ref = useReveal();
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="flex scroll-mt-[calc(var(--header-h)+20px)] flex-col gap-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+    <section
+      ref={ref}
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className="rt-reveal flex scroll-mt-[calc(var(--header-h)+20px)] flex-col gap-4"
+    >
+      <div className="rt-live flex flex-wrap items-end justify-between gap-2">
         <div className="flex flex-col gap-1">
           <h2 id={`${id}-title`} className="font-display text-[26px] font-semibold leading-tight tracking-tight text-ink">
             {title}

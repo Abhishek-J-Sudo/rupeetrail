@@ -49,7 +49,7 @@ export default function Welcome({ onFile }) {
     <div className="flex flex-col gap-4">
       {/* The one dark moment on this screen */}
       <section className="relative overflow-hidden rounded-card bg-sidebar px-6 py-9 text-sidebar-ink md:px-10 md:py-12">
-        <DashedTrail className="hidden md:block" />
+        <DashedTrail className="rt-ambient hidden md:block" />
         <div className="relative flex max-w-2xl flex-col gap-3">
           <p className="font-mono text-[11px] uppercase tracking-[0.08em] text-sidebar-muted">Welcome to RupeeTrail</p>
           <h1 className="font-display text-[32px] font-semibold leading-[1.1] tracking-tight md:text-[42px]">

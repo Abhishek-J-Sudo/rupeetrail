@@ -7,12 +7,12 @@ export const spring = { type: 'spring', duration: 0.35, bounce: 0.15 };
 // Hover and press feedback.
 export const springFast = { type: 'spring', duration: 0.18, bounce: 0.2 };
 
-// Page content when switching routes: fade with a small slide, sidebar stays put.
+// Page content when switching screens: the old one fades out quickly, the new one eases up
+// into place (a tween, so it settles without a bounce). The header stays put.
 export const pageTransition = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -4 },
-  transition: spring,
+  initial: { opacity: 0, y: 14 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, y: -6, transition: { duration: 0.14, ease: [0.4, 0, 1, 1] } },
 };
 
 // Lists and tile rows: children appear 25ms apart, never more than ~300ms in total.
