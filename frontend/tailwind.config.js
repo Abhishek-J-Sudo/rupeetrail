@@ -61,6 +61,9 @@ export default {
       boxShadow: {
         card: 'var(--rt-shadow-card)',
         pop: 'var(--rt-shadow-pop)',
+        header: 'var(--rt-shadow-header)',
+        band: 'var(--rt-shadow-band)',
+        lift: 'var(--rt-shadow-lift)',
       },
       transitionTimingFunction: {
         out: 'var(--rt-ease-out)',

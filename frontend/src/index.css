@@ -20,44 +20,40 @@
   }
 }
 
-/* Add this CSS block to your main stylesheet (e.g., index.css or global.css) */
-
-/* 1. Animation for sliding in from the RIGHT (used for Next Page) */
-@keyframes slide-in-right {
-  from {
-    opacity: 0;
-    /* Start 20 pixels off-screen to the right */
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+/* Brand motifs come alive (components/brand/Route.jsx). A container marked `rt-live` animates
+   its motifs while hovered or focused; `rt-ambient` ones move all the time, slowly. Dashes flow
+   along the trail, the end stop breathes, the corner curve redraws. Transform, opacity and
+   stroke-dashoffset only, and nothing moves when the computer asks for reduced motion. */
+@keyframes rt-dash-flow {
+  to { stroke-dashoffset: -40; }
+}
+@keyframes rt-stop-breathe {
+  50% { transform: scale(1.35); }
+}
+@keyframes rt-curve-draw {
+  from { stroke-dashoffset: 200; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes rt-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
 }
 
-/* 2. Animation for sliding in from the LEFT (used for Previous Page) */
-@keyframes slide-in-left {
-  from {
-    opacity: 0;
-    /* Start 20 pixels off-screen to the left */
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.rt-stop {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.rt-curve {
+  stroke-dasharray: 200;
 }
 
-/* 3. Helper classes to apply the animations */
-.animate-slide-in-right {
-  animation: slide-in-right 0.5s ease-out forwards;
-}
+@media (prefers-reduced-motion: no-preference) {
+  .rt-ambient .rt-dash { animation: rt-dash-flow 4s linear infinite; }
+  .rt-live:is(:hover, :focus-within) .rt-dash { animation: rt-dash-flow 1.2s linear infinite; }
+  .rt-live:is(:hover, :focus-within) .rt-stop { animation: rt-stop-breathe 1.4s var(--rt-ease-out) infinite; }
+  .rt-live:is(:hover, :focus-within) .rt-curve { animation: rt-curve-draw 900ms var(--rt-ease-out); }
 
-.animate-slide-in-left {
-  animation: slide-in-left 0.5s ease-out forwards;
-}
-
-/* Optional: Add this to the wrapper to make sure the table doesn't shift width during transition */
-.transaction-content-wrapper {
-  min-height: 400px; /* Or enough height to hold your table */
+  /* Report sections rise into place the first time they scroll into view (useReveal) */
+  .rt-reveal { opacity: 0; }
+  .rt-reveal.rt-shown { animation: rt-rise 600ms var(--rt-ease-out) both; }
 }

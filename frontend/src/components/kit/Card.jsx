@@ -4,11 +4,11 @@ import { LightTrail, TrailIcon } from '@/components/brand/Route';
 import { cn } from '@/lib/utils';
 import { goToSection } from '@/app/report/sections';
 
-// The white panel every page is built from.
+// The white panel every page is built from. `rt-live`: its brand motifs animate on hover.
 export function Card({ as: Tag = 'section', className, children, ...props }) {
   return (
     <Tag
-      className={cn('flex min-w-0 flex-col gap-3.5 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5', className)}
+      className={cn('rt-live flex min-w-0 flex-col gap-3.5 rounded-card border border-line bg-surface p-4 shadow-card sm:p-5', className)}
       {...props}
     >
       {children}
@@ -22,7 +22,7 @@ export function Card({ as: Tag = 'section', className, children, ...props }) {
 export function CardHeader({ band = false, ...props }) {
   if (!band) return <HeaderRow {...props} />;
   return (
-    <div className="relative -mx-4 -mt-4 overflow-hidden border-b border-line bg-surface-2 px-4 py-4 sm:-mx-5 sm:-mt-5 sm:px-5">
+    <div className="relative -mx-4 -mt-4 overflow-hidden border-b border-line bg-surface-2 px-4 py-4 shadow-band sm:-mx-5 sm:-mt-5 sm:px-5">
       <LightTrail className={props.children ? 'right-28' : 'right-0'} />
       <div className="relative">
         <HeaderRow {...props} band />

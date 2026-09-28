@@ -27,3 +27,9 @@ export function buildFlow({ spent, income, saved, categories, sources }, { shown
   }
   return { inItems, outItems };
 }
+
+// The outflows alone, biggest first, for the treemap / ring / bars views: without the
+// balancing "Left in account" row, since that money didn't go anywhere.
+export function spendItems(outItems) {
+  return outItems.filter((i) => !i.muted && i.amount > 0).sort((a, b) => b.amount - a.amount);
+}

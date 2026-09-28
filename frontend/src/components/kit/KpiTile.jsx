@@ -9,7 +9,7 @@ export default function KpiTile({ label, value, format, hero = false, children }
   return (
     <div
       className={cn(
-        'relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-card px-4 py-4 sm:px-5 sm:py-[18px]',
+        'rt-live relative flex min-w-0 flex-col gap-2 overflow-hidden rounded-card px-4 py-4 transition-[transform,box-shadow] duration-base ease-out hover:-translate-y-0.5 hover:shadow-lift sm:px-5 sm:py-[18px]',
         hero ? 'bg-sidebar-active text-sidebar-active-ink' : 'border border-line bg-surface shadow-card'
       )}
     >

@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
-import { motion } from 'motion/react';
-import { ArrowDown, CalendarClock, Target } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ArrowDown, CalendarClock, ChartBarDecreasing, ChartPie, LayoutGrid, Target, Waypoints } from 'lucide-react';
 import { CurveCorner, DashedTrail } from '@/components/brand/Route';
 import { useData, usePeriod } from '@/app/hooks';
 import { goToSection } from '@/app/report/sections';
@@ -10,12 +10,14 @@ import { AIBriefCard } from '@/sections/AISummary';
 import { Card, CardHeader, CardLink } from '@/components/kit/Card';
 import CategoryTag from '@/components/kit/CategoryTag';
 import FlowList from '@/components/kit/FlowList';
+import { FlowBars, FlowDonut, FlowTreemap } from '@/components/kit/FlowViews';
 import KpiTile from '@/components/kit/KpiTile';
 import MoneyFlow from '@/components/kit/MoneyFlow';
 import Pill from '@/components/kit/Pill';
+import Segmented from '@/components/kit/Segmented';
 import { TrailList, TrailStop } from '@/components/kit/Trail';
 import { budgetScale, budgetStatus, savingsRate, summarize } from '@/lib/finance';
-import { buildFlow } from '@/lib/flow';
+import { buildFlow, spendItems } from '@/lib/flow';
 import { formatChange, formatINR } from '@/lib/money';
 import { stagger } from '@/theme/motion';
 import { cn } from '@/lib/utils';
@@ -80,14 +82,63 @@ function KpiRow({ summary, previous, budget }) {
 
 // ---------- Where the money went ----------
 
+// The same money drawn four ways; the choice is remembered on this computer
+const VIEWS = [
+  { value: 'flow', label: 'Flow', icon: Waypoints },
+  { value: 'boxes', label: 'Boxes', icon: LayoutGrid },
+  { value: 'ring', label: 'Ring', icon: ChartPie },
+  { value: 'bars', label: 'Bars', icon: ChartBarDecreasing },
+];
+const VIEW_KEY = 'rt-flow-view';
+
+function readView() {
+  try {
+    const v = localStorage.getItem(VIEW_KEY);
+    return VIEWS.some((o) => o.value === v) ? v : 'flow';
+  } catch {
+    return 'flow';
+  }
+}
+
+function FlowChart({ view, flow }) {
+  if (view === 'boxes') return <FlowTreemap items={spendItems(flow.outItems)} />;
+  if (view === 'ring') return <FlowDonut items={spendItems(flow.outItems)} />;
+  if (view === 'bars') return <FlowBars items={spendItems(flow.outItems)} />;
+  return (
+    <>
+      <div className="hidden sm:block">
+        <MoneyFlow
+          sources={flow.inItems}
+          outflows={flow.outItems}
+          centerLabel="Total"
+          ariaLabel="Where the money went: money in on the left, split into savings and spending categories on the right"
+        />
+      </div>
+      {/* Phones: a Sankey is unreadable at this width, so the same numbers as bars and lists */}
+      <div className="sm:hidden">
+        <FlowList sources={flow.inItems} outflows={flow.outItems} />
+      </div>
+    </>
+  );
+}
+
 function FlowCard({ summary }) {
   const { spent, income, saved } = summary;
   const flow = useMemo(() => buildFlow(summary), [summary]);
+  const [view, setViewState] = useState(readView);
+  const setView = (v) => {
+    setViewState(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      // Storage blocked: the choice still applies until the page reloads
+    }
+  };
 
   return (
     <Card aria-labelledby="flow-title" className="gap-0 overflow-hidden p-0 sm:p-0">
       {/* Dark banner from the brand sheet's "example usage", with the dashed trail */}
-      <div className="relative overflow-hidden bg-sidebar px-4 py-4 sm:px-6 sm:py-5">
+      <div className="rt-ambient relative overflow-hidden bg-sidebar px-4 py-4 shadow-band sm:px-6 sm:py-5">
         <DashedTrail className="hidden md:block" />
         <div className="relative flex flex-col gap-1">
           <h2 id="flow-title" className="font-display text-xl font-semibold text-sidebar-ink">
@@ -100,25 +151,22 @@ function FlowCard({ summary }) {
       </div>
       <div className="p-4 sm:p-5">
         {income + spent + saved > 0 ? (
-          <>
-            <div className="hidden sm:block">
-              <MoneyFlow
-                sources={flow.inItems}
-                outflows={flow.outItems}
-                centerLabel="Total"
-                ariaLabel="Where the money went: money in on the left, split into savings and spending categories on the right"
-              />
-            </div>
-            {/* Phones: a Sankey is unreadable at this width, so the same numbers as bars and lists */}
-            <div className="sm:hidden">
-              <FlowList sources={flow.inItems} outflows={flow.outItems} />
-            </div>
-          </>
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={view}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.22, 1, 0.36, 1] } }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+            >
+              <FlowChart view={view} flow={flow} />
+            </motion.div>
+          </AnimatePresence>
         ) : (
           <p className="py-10 text-center text-sm text-ink-muted">No money in or out in this period.</p>
         )}
-        {/* Next step after reading the chart, so it sits where the eye ends up */}
-        <div className="mt-3 flex justify-end">
+        {/* Under the chart, where the eye ends up: another way to draw it, and the next step */}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <Segmented label="Chart style" options={VIEWS} value={view} onChange={setView} />
           <button
             type="button"
             onClick={() => goToSection('cash-flow')}

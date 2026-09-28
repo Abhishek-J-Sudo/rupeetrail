@@ -50,8 +50,7 @@ export default function ReportHeader({ onUpload, period = true, railSide = null 
     <header
       ref={ref}
       className={cn(
-        'fixed inset-x-0 top-0 z-40 border-b border-line bg-surface/90 backdrop-blur-md transition-shadow duration-base',
-        folded && 'shadow-card'
+        'fixed inset-x-0 top-0 z-40 border-b border-line bg-surface/90 shadow-header backdrop-blur-md'
       )}
     >
       {/* Same side padding and width as the page content, so the edges line up with the cards */}
