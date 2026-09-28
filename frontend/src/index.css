@@ -1,0 +1,63 @@
+@import "./theme/tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-bg text-ink font-sans antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3 {
+    @apply font-display;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--rt-accent));
+    outline-offset: 2px;
+  }
+}
+
+/* Add this CSS block to your main stylesheet (e.g., index.css or global.css) */
+
+/* 1. Animation for sliding in from the RIGHT (used for Next Page) */
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    /* Start 20 pixels off-screen to the right */
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 2. Animation for sliding in from the LEFT (used for Previous Page) */
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    /* Start 20 pixels off-screen to the left */
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 3. Helper classes to apply the animations */
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out forwards;
+}
+
+.animate-slide-in-left {
+  animation: slide-in-left 0.5s ease-out forwards;
+}
+
+/* Optional: Add this to the wrapper to make sure the table doesn't shift width during transition */
+.transaction-content-wrapper {
+  min-height: 400px; /* Or enough height to hold your table */
+}

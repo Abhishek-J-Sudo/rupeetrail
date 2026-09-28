@@ -1,0 +1,26 @@
+// Categories with their own colour token (--rt-cat-<slug> in tokens.css).
+// Kept dependency-free so tailwind.config.js can import it.
+export const CATEGORY_SLUGS = [
+  'home-expense',
+  'loans-emi',
+  'credit-cards',
+  'groceries',
+  'food-dining',
+  'shopping',
+  'transportation',
+  'fuel',
+  'bills',
+  'software-ai',
+  'healthcare',
+  'entertainment',
+  'travel-stays',
+  'education',
+  'services',
+  'personal-expense',
+  'investments',
+  'income',
+  'personal-transfer',
+  'atm-withdrawal',
+  'miscellaneous',
+  'other',
+];

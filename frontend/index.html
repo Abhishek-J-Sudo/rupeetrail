@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RupeeTrail</title>
+    <script>
+      // Apply the saved theme before first paint (same logic as src/theme/theme.js):
+      // light or dark when chosen, otherwise follow the computer's setting.
+      var t = 'system';
+      try {
+        var c = localStorage.getItem('rt-theme');
+        if (c === 'light' || c === 'dark') t = c;
+      } catch (e) {}
+      if (t !== 'system') document.documentElement.setAttribute('data-theme', t);
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

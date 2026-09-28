@@ -1,0 +1,215 @@
+/*
+ * RupeeTrail design tokens: Slate & Jade.
+ * Brand colours match the logo (public/rupeetrail_logo.png): teal #1C7580, slate #314F5B.
+ *
+ * Every colour in the app comes from here. Components never use raw hex or Tailwind
+ * palette classes (gray-500, blue-600...); they use the token classes defined in
+ * tailwind.config.js (bg-surface, text-ink-muted, bg-accent/10, bg-cat-groceries...).
+ * To retheme, change the values below; nothing else needs to change.
+ *
+ * Values are space-separated RGB channels so Tailwind opacity modifiers work
+ * (e.g. bg-accent/15). In plain CSS use rgb(var(--rt-accent)).
+ *
+ * Light unless dark applies: <html data-theme="dark">, or no explicit choice (System, the
+ * default) and the OS prefers dark (see theme.js). An element with data-theme="light" gets
+ * the light values inside a dark page.
+ */
+
+:root,
+[data-theme="light"] {
+  --rt-bg: 243 245 245; /* #F3F5F5 */
+  --rt-surface: 255 255 255; /* #FFFFFF */
+  --rt-surface-2: 246 248 248; /* #F6F8F8 */
+  --rt-track: 230 235 236; /* #E6EBEC */
+  --rt-line: 220 227 228; /* #DCE3E4 */
+  --rt-line-strong: 197 207 209; /* #C5CFD1 */
+  --rt-ink: 21 32 36; /* #152024 */
+  --rt-ink-muted: 79 95 99; /* #4F5F63 */
+  --rt-ink-faint: 95 109 115; /* #5F6D73 */
+  --rt-accent: 28 117 128; /* #1C7580 */
+  --rt-accent-hover: 22 94 102; /* #165E66 */
+  --rt-accent-fg: 255 255 255; /* #FFFFFF */
+  --rt-cta: 254 118 79; /* #FE764F */
+  --rt-cta-hover: 242 98 62; /* #F2623E */
+  --rt-cta-fg: 31 13 6; /* #1F0D06 */
+  --rt-good: 26 111 73; /* #1A6F49 */
+  --rt-warn: 145 80 0; /* #915000 */
+  --rt-bad: 179 48 31; /* #B3301F */
+  --rt-sidebar: 24 32 40; /* #182028 */
+  --rt-sidebar-ink: 255 255 255; /* #FFFFFF */
+  --rt-sidebar-muted: 182 190 198; /* #B6BEC6 */
+  --rt-sidebar-active: 49 79 91; /* #314F5B */
+  --rt-sidebar-active-ink: 255 255 255; /* #FFFFFF */
+  --rt-sidebar-account: 31 34 48; /* #1F2230 */
+  --rt-sidebar-account-line: 46 50 66; /* #2E3242 */
+  --rt-accent-soft: 228 238 239; /* #E4EEEF */
+  --rt-good-soft: 227 238 233; /* #E3EEE9 */
+  --rt-warn-soft: 242 234 224; /* #F2EAE0 */
+  --rt-bad-soft: 246 230 228; /* #F6E6E4 */
+
+  --rt-cat-home-expense: 47 109 181; /* #2F6DB5 */
+  --rt-cat-loans-emi: 122 79 176; /* #7A4FB0 */
+  --rt-cat-credit-cards: 90 107 140; /* #5A6B8C */
+  --rt-cat-groceries: 59 143 88; /* #3B8F58 */
+  --rt-cat-food-dining: 217 113 47; /* #D9712F */
+  --rt-cat-shopping: 192 74 131; /* #C04A83 */
+  --rt-cat-transportation: 35 144 155; /* #23909B */
+  --rt-cat-fuel: 184 80 47; /* #B8502F */
+  --rt-cat-bills: 179 139 18; /* #B38B12 */
+  --rt-cat-software-ai: 85 99 207; /* #5563CF */
+  --rt-cat-healthcare: 201 71 71; /* #C94747 */
+  --rt-cat-entertainment: 138 106 75; /* #8A6A4B */
+  --rt-cat-travel-stays: 42 140 196; /* #2A8CC4 */
+  --rt-cat-education: 107 127 31; /* #6B7F1F */
+  --rt-cat-services: 111 127 106; /* #6F7F6A */
+  --rt-cat-personal-expense: 160 82 154; /* #A0529A */
+  --rt-cat-investments: 46 125 122; /* #2E7D7A */
+  --rt-cat-income: 26 111 73; /* #1A6F49 */
+  --rt-cat-personal-transfer: 140 150 156; /* #8C969C */
+  --rt-cat-atm-withdrawal: 154 143 128; /* #9A8F80 */
+  --rt-cat-miscellaneous: 163 173 176; /* #A3ADB0 */
+  --rt-cat-other: 140 152 145; /* #8C9891 */
+
+  --rt-radius: 14px;
+  --rt-radius-sm: 8px;
+  --rt-radius-pill: 999px;
+  --rt-shadow-card: 0 1px 2px rgb(21 32 36 / 0.04);
+  --rt-shadow-pop: 0 12px 32px -8px rgb(21 32 36 / 0.18), 0 2px 6px rgb(21 32 36 / 0.06);
+
+  /* Motion: short, springy, transform/opacity only. JS springs live in theme/motion.js */
+  --rt-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --rt-ease-spring: cubic-bezier(0.34, 1.36, 0.64, 1);
+  --rt-dur-fast: 150ms;
+  --rt-dur-base: 250ms;
+  --rt-dur-slow: 350ms;
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --rt-bg: 18 19 22; /* #121316 */
+    --rt-surface: 26 27 31; /* #1A1B1F */
+    --rt-surface-2: 33 34 39; /* #212227 */
+    --rt-track: 39 41 46; /* #27292E */
+    --rt-line: 45 47 53; /* #2D2F35 */
+    --rt-line-strong: 58 61 68; /* #3A3D44 */
+    --rt-ink: 236 237 239; /* #ECEDEF */
+    --rt-ink-muted: 162 165 173; /* #A2A5AD */
+    --rt-ink-faint: 138 141 150; /* #8A8D96 */
+    --rt-accent: 108 195 204; /* #6CC3CC */
+    --rt-accent-hover: 138 210 217; /* #8AD2D9 */
+    --rt-accent-fg: 14 26 28; /* #0E1A1C */
+    --rt-cta: 254 118 79; /* #FE764F */
+    --rt-cta-hover: 255 138 107; /* #FF8A6B */
+    --rt-cta-fg: 31 13 6; /* #1F0D06 */
+    --rt-good: 76 201 138; /* #4CC98A */
+    --rt-warn: 242 184 75; /* #F2B84B */
+    --rt-bad: 240 113 103; /* #F07167 */
+    --rt-sidebar: 13 14 16; /* #0D0E10 */
+    --rt-sidebar-ink: 236 237 239; /* #ECEDEF */
+    --rt-sidebar-muted: 154 157 165; /* #9A9DA5 */
+    --rt-sidebar-active: 49 79 91; /* #314F5B */
+    --rt-sidebar-active-ink: 255 255 255; /* #FFFFFF */
+    --rt-sidebar-account: 26 27 31; /* #1A1B1F */
+    --rt-sidebar-account-line: 45 47 53; /* #2D2F35 */
+    --rt-accent-soft: 41 57 62; /* #29393E */
+    --rt-good-soft: 35 58 50; /* #233A32 */
+    --rt-warn-soft: 65 55 39; /* #413727 */
+    --rt-bad-soft: 65 42 44; /* #412A2C */
+
+    --rt-cat-home-expense: 118 165 218; /* #76A5DA */
+    --rt-cat-loans-emi: 164 134 202; /* #A486CA */
+    --rt-cat-credit-cards: 147 161 190; /* #93A1BE */
+    --rt-cat-groceries: 132 205 157; /* #84CD9D */
+    --rt-cat-food-dining: 227 155 110; /* #E39B6E */
+    --rt-cat-shopping: 210 126 167; /* #D27EA7 */
+    --rt-cat-transportation: 115 212 222; /* #73D4DE */
+    --rt-cat-fuel: 219 142 118; /* #DB8E76 */
+    --rt-cat-bills: 233 201 103; /* #E9C967 */
+    --rt-cat-software-ai: 120 131 216; /* #7883D8 */
+    --rt-cat-healthcare: 215 121 121; /* #D77979 */
+    --rt-cat-entertainment: 196 168 141; /* #C4A88D */
+    --rt-cat-travel-stays: 113 183 223; /* #71B7DF */
+    --rt-cat-education: 198 220 117; /* #C6DC75 */
+    --rt-cat-services: 162 180 157; /* #A2B49D */
+    --rt-cat-personal-expense: 198 139 193; /* #C68BC1 */
+    --rt-cat-investments: 128 209 206; /* #80D1CE */
+    --rt-cat-income: 76 201 138; /* #4CC98A */
+    --rt-cat-personal-transfer: 158 171 178; /* #9EABB2 */
+    --rt-cat-atm-withdrawal: 182 170 155; /* #B6AA9B */
+    --rt-cat-miscellaneous: 159 175 180; /* #9FAFB4 */
+    --rt-cat-other: 160 177 167; /* #A0B1A7 */
+
+    --rt-shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+    --rt-shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --rt-bg: 18 19 22; /* #121316 */
+  --rt-surface: 26 27 31; /* #1A1B1F */
+  --rt-surface-2: 33 34 39; /* #212227 */
+  --rt-track: 39 41 46; /* #27292E */
+  --rt-line: 45 47 53; /* #2D2F35 */
+  --rt-line-strong: 58 61 68; /* #3A3D44 */
+  --rt-ink: 236 237 239; /* #ECEDEF */
+  --rt-ink-muted: 162 165 173; /* #A2A5AD */
+  --rt-ink-faint: 138 141 150; /* #8A8D96 */
+  --rt-accent: 108 195 204; /* #6CC3CC */
+  --rt-accent-hover: 138 210 217; /* #8AD2D9 */
+  --rt-accent-fg: 14 26 28; /* #0E1A1C */
+  --rt-cta: 254 118 79; /* #FE764F */
+  --rt-cta-hover: 255 138 107; /* #FF8A6B */
+  --rt-cta-fg: 31 13 6; /* #1F0D06 */
+  --rt-good: 76 201 138; /* #4CC98A */
+  --rt-warn: 242 184 75; /* #F2B84B */
+  --rt-bad: 240 113 103; /* #F07167 */
+  --rt-sidebar: 13 14 16; /* #0D0E10 */
+  --rt-sidebar-ink: 236 237 239; /* #ECEDEF */
+  --rt-sidebar-muted: 154 157 165; /* #9A9DA5 */
+  --rt-sidebar-active: 49 79 91; /* #314F5B */
+  --rt-sidebar-active-ink: 255 255 255; /* #FFFFFF */
+  --rt-sidebar-account: 26 27 31; /* #1A1B1F */
+  --rt-sidebar-account-line: 45 47 53; /* #2D2F35 */
+  --rt-accent-soft: 41 57 62; /* #29393E */
+  --rt-good-soft: 35 58 50; /* #233A32 */
+  --rt-warn-soft: 65 55 39; /* #413727 */
+  --rt-bad-soft: 65 42 44; /* #412A2C */
+
+  --rt-cat-home-expense: 118 165 218; /* #76A5DA */
+  --rt-cat-loans-emi: 164 134 202; /* #A486CA */
+  --rt-cat-credit-cards: 147 161 190; /* #93A1BE */
+  --rt-cat-groceries: 132 205 157; /* #84CD9D */
+  --rt-cat-food-dining: 227 155 110; /* #E39B6E */
+  --rt-cat-shopping: 210 126 167; /* #D27EA7 */
+  --rt-cat-transportation: 115 212 222; /* #73D4DE */
+  --rt-cat-fuel: 219 142 118; /* #DB8E76 */
+  --rt-cat-bills: 233 201 103; /* #E9C967 */
+  --rt-cat-software-ai: 120 131 216; /* #7883D8 */
+  --rt-cat-healthcare: 215 121 121; /* #D77979 */
+  --rt-cat-entertainment: 196 168 141; /* #C4A88D */
+  --rt-cat-travel-stays: 113 183 223; /* #71B7DF */
+  --rt-cat-education: 198 220 117; /* #C6DC75 */
+  --rt-cat-services: 162 180 157; /* #A2B49D */
+  --rt-cat-personal-expense: 198 139 193; /* #C68BC1 */
+  --rt-cat-investments: 128 209 206; /* #80D1CE */
+  --rt-cat-income: 76 201 138; /* #4CC98A */
+  --rt-cat-personal-transfer: 158 171 178; /* #9EABB2 */
+  --rt-cat-atm-withdrawal: 182 170 155; /* #B6AA9B */
+  --rt-cat-miscellaneous: 159 175 180; /* #9FAFB4 */
+  --rt-cat-other: 160 177 167; /* #A0B1A7 */
+
+  --rt-shadow-card: 0 1px 2px rgb(0 0 0 / 0.3);
+  --rt-shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.3);
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --rt-dur-fast: 0ms;
+    --rt-dur-base: 0ms;
+    --rt-dur-slow: 0ms;
+  }
+}
