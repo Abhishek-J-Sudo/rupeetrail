@@ -10,6 +10,10 @@
 <p align="center"><b>Local. Private. Yours.</b><br>
 See where your money went, from your own bank statement, on your own computer.</p>
 
+<p align="center">Most expense apps in India read your SMS, ask for access to your account, or upload your transactions to their servers, and many charge a subscription.<br>
+RupeeTrail reads the statement your bank already gives you, makes sense of Indian UPI and NEFT lines, and keeps everything on your computer.<br>
+Free and open source.</p>
+
 <p align="center">
   <img src="docs/screenshots/overview-light.png" alt="The RupeeTrail report: spent, income, saved and budget left for the month, and where the money went" width="900">
 </p>
