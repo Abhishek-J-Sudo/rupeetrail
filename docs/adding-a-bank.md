@@ -11,12 +11,12 @@ Instead, build a **fake statement in the same layout**: the same header rows, co
 ## How a statement gets in
 
 1. The screens send the file to `/upload-stream` (or `/upload`) in `backend/app/main.py`.
-2. `main.py` picks a reader by file type: `extract_hdfc_transactions` (`parser/extract.py`) for PDF, `extract_hdfc_transactions_excel` (`parser/extract_excel.py`) for `.xls` / `.xlsx`.
+2. `pick_reader` in `parser/readers.py` reads the start of the file (the first PDF page, or the first Excel rows) and asks each reader in `READERS` whether it recognises it. A file no reader recognises is refused with a message saying what RupeeTrail can read, before anything is saved.
 3. The reader returns a list of transactions (below).
 4. `bulk_insert_transactions` in `database.py` saves them, skipping any already there. A transaction's identity is its **date, amount and merchant**, so the same statement imported twice adds nothing.
 5. The file is deleted (unless the user keeps copies), and the screens reload.
 
-A new bank means a new reader, and a way for step 2 to choose it. The simplest version: work out the bank from the file's header rows (column names are usually enough) and pick that bank's reader.
+A new bank means a new extract function and a `Reader` entry in `READERS`: its file types, and a `detect` function that recognises the bank's statements. `detect` gets the start of the file as lowercase text with all spaces removed, so `Withdrawal Amt.` and `WithdrawalAmt.` both arrive as `withdrawalamt.`; the table's column names are usually enough. Make it specific enough not to claim another bank's statements.
 
 ## What a reader returns
 
@@ -76,7 +76,8 @@ Starting points, **not checked against real statements** (compiled from public f
 
 ## Checklist for a pull request
 
-- A reader for the new bank, and the choice of reader in `main.py`.
+- A reader for the new bank, and its `Reader` entry (with `detect`) in `parser/readers.py`.
+- A test in `backend/tests/test_readers.py` that a fake statement in the bank's layout is recognised, and that the other banks' fakes still go to their own readers (`tests/fakes.py` builds PDFs in code).
 - Tests that build a fake statement in the bank's layout and check dates, amounts, money in/out and balances, plus merchant names for the bank's common description shapes.
 - The existing HDFC tests still pass: `cd backend && venv/Scripts/python -m pytest` (`venv/bin/python` on Mac and Linux).
 - Say in the pull request which real statement format you checked against (for example "SBI savings, Excel export from YONO, September 2026"), without attaching it.

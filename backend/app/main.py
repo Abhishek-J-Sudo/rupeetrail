@@ -30,8 +30,7 @@ from .database import (
     get_category_suggestions, get_transactions_by_merchant, bulk_update_categories, get_connection,
     get_budgets, save_budgets, sample_active
 )
-from .parser.extract import extract_hdfc_transactions
-from .parser.extract_excel import extract_hdfc_transactions_excel
+from .parser.readers import pick_reader, UnrecognisedStatement
 from .categorizer.learning import learn_merchant_category, get_learning_stats
 from .migrations import run_migrations
 from .recurring import find_recurring
@@ -152,10 +151,16 @@ async def replace_budgets(body: Budgets):
     return save_budgets(body.limits, body.savings_target)
 
 
+NO_TRANSACTIONS = (
+    "No transactions found in this statement. Check it covers the months you picked, "
+    "and that it's the statement as downloaded from your bank."
+)
+
+
 @app.post("/upload", response_model=UploadResponse)
 async def upload_statement(file: UploadFile = File(...)):
     """
-    Upload HDFC statement (PDF or Excel) and parse transactions
+    Upload a statement (PDF or Excel), recognise which kind it is and read it
 
     Args:
         file: Statement file - PDF (.pdf) or Excel (.xls, .xlsx)
@@ -190,14 +195,15 @@ async def upload_statement(file: UploadFile = File(...)):
 
         logger.info(f"File saved to: {temp_path}")
 
-        # Extract transactions based on file type
+        # Work out what kind of statement it is, then read it with that reader
         try:
-            if file_ext == 'pdf':
-                logger.info("Parsing PDF file...")
-                transactions = extract_hdfc_transactions(str(temp_path))
-            else:  # xls or xlsx
-                logger.info(f"Parsing Excel file (.{file_ext})...")
-                transactions = extract_hdfc_transactions_excel(str(temp_path))
+            reader = pick_reader(str(temp_path), file_ext)
+            logger.info(f"Reading {reader.label} (.{file_ext})...")
+            transactions = reader.extract(str(temp_path))
+            if not transactions:
+                raise UnrecognisedStatement(NO_TRANSACTIONS)
+        except UnrecognisedStatement as e:
+            raise HTTPException(status_code=422, detail=str(e))
         except Exception as e:
             logger.error(f"File parsing failed: {e}")
             raise HTTPException(
@@ -233,7 +239,7 @@ async def upload_statement(file: UploadFile = File(...)):
 @app.post("/upload-stream")
 async def upload_statement_stream(file: UploadFile = File(...)):
     """
-    Upload HDFC statement (PDF or Excel) with real-time progress streaming via SSE
+    Upload a statement (PDF or Excel) with real-time progress streaming via SSE
 
     Args:
         file: Statement file - PDF (.pdf) or Excel (.xls, .xlsx)
@@ -327,11 +333,11 @@ async def upload_statement_stream(file: UploadFile = File(...)):
                     event_data = progress_callback(page_num, total_pages, transactions_count, stage)
                     progress_queue.append(event_data)
 
-                # Run extraction in thread (choose parser based on file type)
-                if file_ext == 'pdf':
-                    future = executor.submit(extract_hdfc_transactions, str(temp_path), callback_wrapper)
-                else:  # xls or xlsx
-                    future = executor.submit(extract_hdfc_transactions_excel, str(temp_path), callback_wrapper)
+                # Work out what kind of statement it is, then read it in a thread
+                reader = await asyncio.get_running_loop().run_in_executor(
+                    executor, pick_reader, str(temp_path), file_ext
+                )
+                future = executor.submit(reader.extract, str(temp_path), callback_wrapper)
 
                 # Poll for progress updates
                 last_sent_count = 0
@@ -352,6 +358,10 @@ async def upload_statement_stream(file: UploadFile = File(...)):
                     event_data = progress_queue[last_sent_count]
                     yield f"data: {json.dumps(event_data)}\n\n"
                     last_sent_count += 1
+
+            # Nothing read: say so rather than "Complete!", and leave sample data alone
+            if not transactions:
+                raise UnrecognisedStatement(NO_TRANSACTIONS)
 
             # Insert into database
             elapsed = time.time() - start_time
