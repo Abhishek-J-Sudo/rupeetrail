@@ -25,12 +25,12 @@ from .models import (
     UploadResponse, CategorySummary, ErrorResponse
 )
 from .database import (
-    init_db, insert_transaction, bulk_insert_transactions, get_transactions, get_summary,
+    init_db, insert_transaction, import_statement, get_transactions, get_summary,
     update_transaction, add_merchant_alias, get_transaction_by_id,
     get_category_suggestions, get_transactions_by_merchant, bulk_update_categories, get_connection,
     get_budgets, save_budgets, sample_active
 )
-from .parser.readers import pick_reader, UnrecognisedStatement
+from .parser.readers import read_statement, UnrecognisedStatement
 from .categorizer.learning import learn_merchant_category, get_learning_stats
 from .migrations import run_migrations
 from .recurring import find_recurring
@@ -151,12 +151,6 @@ async def replace_budgets(body: Budgets):
     return save_budgets(body.limits, body.savings_target)
 
 
-NO_TRANSACTIONS = (
-    "No transactions found in this statement. Check it covers the months you picked, "
-    "and that it's the statement as downloaded from your bank."
-)
-
-
 @app.post("/upload", response_model=UploadResponse)
 async def upload_statement(file: UploadFile = File(...)):
     """
@@ -197,11 +191,7 @@ async def upload_statement(file: UploadFile = File(...)):
 
         # Work out what kind of statement it is, then read it with that reader
         try:
-            reader = pick_reader(str(temp_path), file_ext)
-            logger.info(f"Reading {reader.label} (.{file_ext})...")
-            transactions = reader.extract(str(temp_path))
-            if not transactions:
-                raise UnrecognisedStatement(NO_TRANSACTIONS)
+            statement = read_statement(str(temp_path), file_ext)
         except UnrecognisedStatement as e:
             raise HTTPException(status_code=422, detail=str(e))
         except Exception as e:
@@ -211,19 +201,16 @@ async def upload_statement(file: UploadFile = File(...)):
                 detail=f"Could not parse {file_ext.upper()} file: {str(e)}"
             )
 
-        # Insert into database using bulk insert (much faster)
         # A real statement ends sample mode: it goes into the user's own database
         if sample_active():
             sample.clear()
-        saved_count, duplicate_count = bulk_insert_transactions(transactions)
+        counts = import_statement(statement.transactions, statement.coverage, statement.reader.source)
         imported = True
 
-        logger.info(f"Processed {len(transactions)} transactions: {saved_count} saved, {duplicate_count} duplicates")
-
         return UploadResponse(
-            total=len(transactions),
-            saved=saved_count,
-            duplicates=duplicate_count,
+            total=len(statement.transactions),
+            **counts,
+            source=statement.reader.source,
             message=f"Successfully processed {file.filename}"
         )
 
@@ -333,11 +320,8 @@ async def upload_statement_stream(file: UploadFile = File(...)):
                     event_data = progress_callback(page_num, total_pages, transactions_count, stage)
                     progress_queue.append(event_data)
 
-                # Work out what kind of statement it is, then read it in a thread
-                reader = await asyncio.get_running_loop().run_in_executor(
-                    executor, pick_reader, str(temp_path), file_ext
-                )
-                future = executor.submit(reader.extract, str(temp_path), callback_wrapper)
+                # Work out what kind of statement it is and read it, in a thread
+                future = executor.submit(read_statement, str(temp_path), file_ext, callback_wrapper)
 
                 # Poll for progress updates
                 last_sent_count = 0
@@ -351,7 +335,8 @@ async def upload_statement_stream(file: UploadFile = File(...)):
                         last_sent_count += 1
 
                 # Get the result
-                transactions = future.result()
+                statement = future.result()
+                transactions = statement.transactions
 
                 # Send any remaining progress updates
                 while last_sent_count < len(progress_queue):
@@ -359,28 +344,20 @@ async def upload_statement_stream(file: UploadFile = File(...)):
                     yield f"data: {json.dumps(event_data)}\n\n"
                     last_sent_count += 1
 
-            # Nothing read: say so rather than "Complete!", and leave sample data alone
-            if not transactions:
-                raise UnrecognisedStatement(NO_TRANSACTIONS)
-
             # Insert into database
             elapsed = time.time() - start_time
             yield f"data: {json.dumps({'stage': 'Saving to database...', 'page': progress_data['total_pages'], 'total_pages': progress_data['total_pages'], 'transactions': len(transactions), 'percent': 85, 'elapsed': round(elapsed, 1), 'eta': 0})}\n\n"
             await asyncio.sleep(0.1)
 
-            saved_count = 0
-            duplicate_count = 0
-
-            # Use bulk insert for much faster database writes
             # A real statement ends sample mode: it goes into the user's own database
             if sample_active():
                 sample.clear()
-            saved_count, duplicate_count = bulk_insert_transactions(transactions)
+            counts = import_statement(transactions, statement.coverage, statement.reader.source)
             imported = True
 
             # Send completion event
             elapsed = time.time() - start_time
-            yield f"data: {json.dumps({'stage': 'Complete!', 'page': progress_data['total_pages'], 'total_pages': progress_data['total_pages'], 'transactions': len(transactions), 'percent': 100, 'elapsed': round(elapsed, 1), 'eta': 0, 'saved': saved_count, 'duplicates': duplicate_count, 'filename': filename})}\n\n"
+            yield f"data: {json.dumps({'stage': 'Complete!', 'page': progress_data['total_pages'], 'total_pages': progress_data['total_pages'], 'transactions': len(transactions), 'percent': 100, 'elapsed': round(elapsed, 1), 'eta': 0, **counts, 'source': statement.reader.source, 'filename': filename})}\n\n"
 
         except Exception as e:
             logger.error(f"Upload failed: {e}")

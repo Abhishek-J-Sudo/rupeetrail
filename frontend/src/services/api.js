@@ -85,6 +85,11 @@ export const uploadPDFWithProgress = (file, onProgress) => {
                       total: data.transactions,
                       saved: data.saved,
                       duplicates: data.duplicates,
+                      replaced: data.replaced,
+                      removed: data.removed,
+                      inBankStatement: data.in_bank_statement,
+                      notInBankStatement: data.not_in_bank_statement,
+                      source: data.source,
                       message: `Successfully processed ${data.filename}`,
                       elapsed: data.elapsed,
                     };

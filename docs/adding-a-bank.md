@@ -11,12 +11,17 @@ Instead, build a **fake statement in the same layout**: the same header rows, co
 ## How a statement gets in
 
 1. The screens send the file to `/upload-stream` (or `/upload`) in `backend/app/main.py`.
-2. `pick_reader` in `parser/readers.py` reads the start of the file (the first PDF page, or the first Excel rows) and asks each reader in `READERS` whether it recognises it. A file no reader recognises is refused with a message saying what RupeeTrail can read, before anything is saved.
-3. The reader returns a list of transactions (below).
-4. `bulk_insert_transactions` in `database.py` saves them, skipping any already there. A transaction's identity is its **date, amount and merchant**, so the same statement imported twice adds nothing.
+2. `read_statement` in `parser/readers.py` reads the start of the file (the first PDF page, or the first Excel rows) and asks each reader in `READERS` whether it recognises it. A file no reader recognises is refused with a message saying what RupeeTrail can read, before anything is saved.
+3. The reader returns a list of transactions (below), and for a bank statement, what it covers: the account and the statement's dates (`Coverage`, from the header).
+4. `import_statement` in `database.py` saves them, skipping any already there. A UPI payment's identity is its **UPI ID** and direction; any other transaction's is its **date, amount and merchant**. So the same statement imported twice adds nothing, and a payment in both a bank statement and a GPay statement is kept once (the bank's row wins).
 5. The file is deleted (unless the user keeps copies), and the screens reload.
 
 A new bank means a new extract function and a `Reader` entry in `READERS`: its file types, and a `detect` function that recognises the bank's statements. `detect` gets the start of the file as lowercase text with all spaces removed, so `Withdrawal Amt.` and `WithdrawalAmt.` both arrive as `withdrawalamt.`; the table's column names are usually enough. Make it specific enough not to claim another bank's statements.
+
+Two more fields matter if the bank's statements are to sit alongside GPay's:
+
+- `coverage`: reads the account number and statement period from the header into a `Coverage` (account named like GPay names it, `<Bank> <last 4 digits>`). A GPay payment on that account and those dates that the bank statement doesn't have is then skipped, rather than counted twice if matching ever misses.
+- `upi_id`: the 12-digit UPI ID of a UPI row. HDFC puts it in `Chq./Ref.No.`; other banks may only have it in the narration. Without it, GPay rows can't be matched to the bank's, and `coverage` is what keeps totals right.
 
 ## What a reader returns
 

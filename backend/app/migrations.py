@@ -9,7 +9,7 @@ import shutil
 import logging
 from datetime import datetime
 
-from .database import get_connection, active_db_path, INVESTMENT_CATEGORY
+from .database import get_connection, active_db_path, upi_hash, INVESTMENT_CATEGORY
 from .categorizer.rules import categorize_transaction
 from .categorizer.learning import get_learned_category, load_learned_merchants
 from .parser.merchant import detect_transaction_type, is_p2p_transfer
@@ -171,10 +171,38 @@ def _backfill_category_source(cursor) -> str:
     return f"{len(manual)} rows set by the user, {len(ai)} by AI, {len(rows) - len(manual) - len(ai)} by rules"
 
 
+def _backfill_upi_ids(cursor) -> str:
+    """
+    Rows imported before GPay support all came from HDFC statements. Mark them so, and
+    give UPI payments their UPI ID, which HDFC puts in Chq./Ref.No. padded to 16 digits,
+    so a GPay statement imported later finds them. Their account isn't known: the
+    statement header wasn't kept.
+
+    UPI rows are now told apart by UPI ID rather than date, amount and merchant (which
+    merged two equal payments to one payee on one day), so their hash changes to match.
+    Re-importing an old statement then skips what's stored and adds what was merged.
+    """
+    cursor.execute("UPDATE transactions SET source = 'hdfc' WHERE source IS NULL")
+    cursor.execute("""
+        UPDATE transactions SET upi_id = substr(trim(ref_no), -12)
+        WHERE upi_id IS NULL AND narration LIKE 'UPI-%'
+          AND length(trim(ref_no)) BETWEEN 12 AND 16 AND trim(ref_no) NOT GLOB '*[^0-9]*'
+    """)
+    rekeyed = 0
+    for row in cursor.execute("SELECT id, upi_id, txn_type FROM transactions WHERE upi_id IS NOT NULL").fetchall():
+        cursor.execute(
+            "UPDATE OR IGNORE transactions SET hash = ? WHERE id = ?", (upi_hash(row['upi_id'], row['txn_type']), row['id'])
+        )
+        rekeyed += cursor.rowcount
+    upi = cursor.execute("SELECT COUNT(*) FROM transactions WHERE narration LIKE 'UPI-%'").fetchone()[0]
+    return f"UPI ID on {rekeyed} of {upi} UPI rows"
+
+
 MIGRATIONS = [
     ("recategorize_investments_v1", _recategorize_investments),
     ("software_ai_v1", _move_to_software_ai),
     ("category_source_v1", _backfill_category_source),
+    ("upi_ids_v1", _backfill_upi_ids),
 ]
 
 

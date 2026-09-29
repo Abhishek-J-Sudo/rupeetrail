@@ -120,6 +120,11 @@ function Result({ result }) {
     ['Transactions found', result.total],
     ['Added', result.saved],
     result.duplicates > 0 && ['Already imported, skipped', result.duplicates],
+    // A GPay statement next to a bank statement: each payment is kept once
+    result.inBankStatement > 0 && ['Already in your bank statement', result.inBankStatement],
+    result.notInBankStatement > 0 && ['Not in your bank statement, skipped', result.notInBankStatement],
+    result.replaced > 0 && ['Replaced the GPay entry', result.replaced],
+    result.removed > 0 && ['GPay entries not in this statement, removed', result.removed],
   ].filter(Boolean);
   return (
     <div className="flex flex-col gap-3 rounded-card border border-good/30 bg-good-soft px-4 py-3.5">
@@ -197,7 +202,7 @@ export default function UploadDialog({ open, onOpenChange, initialFile = null })
               <TrailIcon icon={FileUp} />
               <div className="flex min-w-0 flex-col gap-0.5">
                 <DialogTitle className="leading-tight text-ink">Import statement</DialogTitle>
-                <DialogDescription className="text-[13px] text-ink-muted">HDFC savings account · PDF or Excel</DialogDescription>
+                <DialogDescription className="text-[13px] text-ink-muted">HDFC statement (PDF or Excel) or Google Pay statement (PDF)</DialogDescription>
               </div>
             </div>
             <DialogClose className="-mr-1.5 rounded-control p-1.5 text-ink-muted transition-colors duration-fast hover:bg-surface hover:text-ink">

@@ -4,6 +4,7 @@ Database Module
 SQLite database operations for RupeeTrail
 """
 
+import re
 import sqlite3
 import hashlib
 import logging
@@ -118,6 +119,26 @@ def init_db():
     # Rows categorised by a learned merchant take the source of that learning.
     if 'category_source' not in columns:
         cursor.execute("ALTER TABLE transactions ADD COLUMN category_source TEXT NOT NULL DEFAULT 'rule'")
+    # Which statement a row came from ('hdfc', 'gpay'), its UPI ID, and the account
+    # ('HDFC Bank 6722'), so a payment in both a bank and a GPay statement is kept once
+    for column in ('source', 'upi_id', 'account'):
+        if column not in columns:
+            cursor.execute(f"ALTER TABLE transactions ADD COLUMN {column} TEXT")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_upi_id ON transactions(upi_id)")
+
+    # What each imported bank statement covers: every transaction on `account` from
+    # `start` to `end`. A GPay payment in that span that the bank statement doesn't have
+    # isn't added (it failed, or was reversed): see import_statement.
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS statement_coverage (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            account TEXT NOT NULL,
+            source TEXT NOT NULL,
+            start TEXT NOT NULL,
+            end TEXT NOT NULL,
+            imported_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
 
     # Key/value store: one-time data migrations, and the monthly savings target
     cursor.execute("""
@@ -296,17 +317,55 @@ def insert_transaction(txn: Dict) -> bool:
         conn.close()
 
 
+def upi_hash(upi_id: str, txn_type: str) -> str:
+    return hashlib.md5(f"upi-{upi_id}-{txn_type}".encode()).hexdigest()
+
+
+def _row_hash(txn: Dict) -> str:
+    """
+    A row's identity for skipping duplicates. UPI payments use their UPI ID, so two equal
+    payments to one payee on one day stay two; other rows use date, amount and merchant.
+    """
+    if txn.get('upi_id'):
+        return upi_hash(txn['upi_id'], txn['txn_type'])
+    return generate_transaction_hash(txn['date'], txn['amount'], txn['merchant'])
+
+
+def _insert(cursor, txn: Dict) -> bool:
+    """Insert one row; False if it's already there"""
+    try:
+        cursor.execute("""
+            INSERT INTO transactions
+            (hash, ref_no, date, merchant, narration, amount, txn_type, balance, category,
+             is_savings_transfer, category_source, source, upi_id, account)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            _row_hash(txn),
+            txn.get('ref_no', ''),
+            txn['date'],
+            txn['merchant'],
+            txn['narration'],
+            txn['amount'],
+            txn['txn_type'],
+            txn.get('balance'),
+            txn['category'],
+            _initial_savings_flag(txn),
+            _initial_category_source(txn),
+            txn.get('source'),
+            txn.get('upi_id'),
+            txn.get('account'),
+        ))
+        return True
+    except sqlite3.IntegrityError:
+        return False
+
+
 def bulk_insert_transactions(transactions: List[Dict]) -> tuple[int, int]:
     """
-    Insert multiple transactions in bulk with duplicate check
+    Insert rows in one database transaction, skipping any already there
 
-    This is much faster than inserting one by one because:
-    - Single database connection
-    - Single transaction/commit
-    - Batch processing
-
-    Args:
-        transactions: List of transaction dictionaries
+    Statements go through import_statement, which also keeps a payment that's in both
+    a bank and a GPay statement once. This is for rows that need none of that (sample data).
 
     Returns:
         Tuple of (saved_count, duplicate_count)
@@ -315,56 +374,145 @@ def bulk_insert_transactions(transactions: List[Dict]) -> tuple[int, int]:
         return 0, 0
 
     conn = get_connection()
-    cursor = conn.cursor()
-
-    saved_count = 0
-    duplicate_count = 0
-
     try:
-        # Start transaction
-        conn.execute("BEGIN")
+        with conn:
+            cursor = conn.cursor()
+            saved = sum(_insert(cursor, txn) for txn in transactions)
+        logger.info(f"Bulk insert completed: {saved} saved, {len(transactions) - saved} duplicates")
+        return saved, len(transactions) - saved
+    finally:
+        conn.close()
 
-        for txn in transactions:
-            # Generate hash
-            txn_hash = generate_transaction_hash(
-                txn['date'],
-                txn['amount'],
-                txn['merchant']
-            )
 
-            try:
-                cursor.execute("""
-                    INSERT INTO transactions
-                    (hash, ref_no, date, merchant, narration, amount, txn_type, balance, category, is_savings_transfer, category_source)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                    txn_hash,
-                    txn.get('ref_no', ''),
-                    txn['date'],
-                    txn['merchant'],
-                    txn['narration'],
-                    txn['amount'],
-                    txn['txn_type'],
-                    txn.get('balance'),
-                    txn['category'],
-                    _initial_savings_flag(txn),
-                    _initial_category_source(txn)
-                ))
-                saved_count += 1
-            except sqlite3.IntegrityError:
-                # Duplicate transaction - continue with others
-                duplicate_count += 1
-                continue
+def _account_key(account: Optional[str]) -> Optional[tuple]:
+    """'HDFC Bank 6722' -> ('hdfc', '6722'): the bank's first word and the last 4 digits"""
+    digits = re.sub(r'\D', '', account or '')
+    words = (account or '').split()
+    return (words[0].lower(), digits[-4:]) if words and len(digits) >= 4 else None
 
-        # Commit all at once
-        conn.commit()
-        logger.info(f"Bulk insert completed: {saved_count} saved, {duplicate_count} duplicates")
-        return saved_count, duplicate_count
 
-    except Exception as e:
-        conn.rollback()
-        logger.error(f"Bulk insert failed: {e}")
-        raise
+def _same_payment(cursor, txn: Dict, gpay: bool) -> Optional[sqlite3.Row]:
+    """
+    The stored row for the same payment: same UPI ID, amount and direction (a refund can
+    carry the original payment's UPI ID), from GPay or from a bank statement
+    """
+    if not txn.get('upi_id'):
+        return None
+    return cursor.execute(f"""
+        SELECT * FROM transactions
+        WHERE upi_id = ? AND txn_type = ? AND ABS(amount - ?) < 0.005
+          AND source {'=' if gpay else 'IS NOT'} 'gpay'
+        LIMIT 1
+    """, (txn['upi_id'], txn['txn_type'], txn['amount'])).fetchone()
+
+
+def _take_over(cursor, gpay_row: sqlite3.Row, txn: Dict) -> bool:
+    """
+    Turn a GPay row into the bank statement's row for the same payment
+
+    The bank's row is the fuller record (balance, the bank's own date and narration), so
+    it replaces the GPay one in place: the row keeps its id, and a category the user or
+    the AI set on it. False if the bank's row is somehow already stored.
+    """
+    keep_category = gpay_row['category_source'] != 'rule'
+    category = gpay_row['category'] if keep_category else txn['category']
+    try:
+        cursor.execute("""
+            UPDATE transactions SET
+                hash = ?, ref_no = ?, date = ?, merchant = ?, narration = ?, balance = ?,
+                source = ?, upi_id = ?, account = ?, category = ?, category_source = ?,
+                is_savings_transfer = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """, (
+            _row_hash(txn), txn.get('ref_no', ''), txn['date'], txn['merchant'], txn['narration'],
+            txn.get('balance'), txn.get('source'), txn.get('upi_id'), txn.get('account'),
+            category,
+            gpay_row['category_source'] if keep_category else _initial_category_source(txn),
+            gpay_row['is_savings_transfer'] if keep_category else _initial_savings_flag(txn),
+            gpay_row['id'],
+        ))
+        return True
+    except sqlite3.IntegrityError:
+        _delete_rows(cursor, [gpay_row['id']])
+        return False
+
+
+def _delete_rows(cursor, ids: List[int]):
+    for row_id in ids:
+        cursor.execute("DELETE FROM category_overrides WHERE transaction_id = ?", (row_id,))
+        cursor.execute("DELETE FROM transactions WHERE id = ?", (row_id,))
+
+
+def _covered(txn: Dict, coverage: List[sqlite3.Row]) -> bool:
+    """Whether an imported bank statement covers this row's account and date"""
+    key = _account_key(txn.get('account'))
+    return key is not None and any(
+        _account_key(c['account']) == key and c['start'] <= txn['date'] <= c['end'] for c in coverage
+    )
+
+
+def import_statement(transactions: List[Dict], coverage=None, source: Optional[str] = None) -> Dict[str, int]:
+    """
+    Save a statement's rows, keeping each payment once across bank and GPay statements
+
+    A bank statement (coverage given: account, start, end) is the complete record:
+    - a GPay row for the same payment (same UPI ID) becomes the bank's row ('replaced')
+    - GPay rows on that account and dates with no bank row are removed ('removed');
+      the payment failed or was reversed
+    - its span is remembered for later GPay imports
+
+    A GPay statement (no coverage) only fills gaps:
+    - a payment already in a bank statement isn't added ('in_bank_statement')
+    - nor is one on an account and date a bank statement covers but doesn't have
+      ('not_in_bank_statement')
+
+    Returns counts: saved, duplicates, replaced, removed, in_bank_statement, not_in_bank_statement
+    """
+    counts = dict(saved=0, duplicates=0, replaced=0, removed=0, in_bank_statement=0, not_in_bank_statement=0)
+    conn = get_connection()
+    try:
+        with conn:
+            cursor = conn.cursor()
+            if coverage:
+                replaced = []
+                for txn in transactions:
+                    gpay_row = _same_payment(cursor, txn, gpay=True)
+                    if gpay_row and _take_over(cursor, gpay_row, txn):
+                        counts['replaced'] += 1
+                        replaced.append(gpay_row['id'])
+                    elif _insert(cursor, txn):
+                        counts['saved'] += 1
+                    else:
+                        counts['duplicates'] += 1
+
+                key = _account_key(coverage.account)
+                orphans = [
+                    row['id'] for row in cursor.execute(
+                        "SELECT id, account FROM transactions WHERE source = 'gpay' AND date BETWEEN ? AND ?",
+                        (coverage.start, coverage.end),
+                    ).fetchall()
+                    if _account_key(row['account']) == key
+                ]
+                _delete_rows(cursor, orphans)
+                counts['removed'] = len(orphans)
+
+                cursor.execute(
+                    "INSERT INTO statement_coverage (account, source, start, end) VALUES (?, ?, ?, ?)",
+                    (coverage.account, source or '', coverage.start, coverage.end),
+                )
+            else:
+                covered_spans = cursor.execute("SELECT account, start, end FROM statement_coverage").fetchall()
+                for txn in transactions:
+                    if _same_payment(cursor, txn, gpay=False):
+                        counts['in_bank_statement'] += 1
+                    elif _covered(txn, covered_spans):
+                        counts['not_in_bank_statement'] += 1
+                    elif _insert(cursor, txn):
+                        counts['saved'] += 1
+                    else:
+                        counts['duplicates'] += 1
+        logger.info(f"Imported statement: {counts}")
+        return counts
     finally:
         conn.close()
 
@@ -817,6 +965,7 @@ def clear_all_transactions() -> int:
 
     cursor.execute("DELETE FROM transactions")
     count = cursor.rowcount
+    cursor.execute("DELETE FROM statement_coverage")
 
     conn.commit()
     conn.close()

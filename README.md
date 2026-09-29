@@ -22,11 +22,11 @@ RupeeTrail reads the statement you download from your bank and turns it into a r
 
 It runs on your computer. There's no account, no sign-in and no server: your statements and transactions never leave your machine. AI is optional and only runs when you press a button, with your own key.
 
-> **Bank support:** version 1 reads **HDFC Bank** statements (PDF and Excel). More banks are planned; see [adding a bank](docs/adding-a-bank.md).
+> **Bank support:** RupeeTrail reads **HDFC Bank** statements (PDF and Excel) and **Google Pay** statements (PDF). More banks are planned; see [adding a bank](docs/adding-a-bank.md).
 
 ## What it does
 
-- **Import a statement** (PDF or Excel from HDFC NetBanking). Re-importing overlapping months is safe: duplicates are skipped. The file is deleted once its transactions are saved, unless you choose to keep a copy.
+- **Import a statement** (PDF or Excel from HDFC NetBanking, or a Google Pay statement). Re-importing overlapping months is safe: duplicates are skipped. A payment in both your bank statement and your GPay statement is counted once. A GPay statement on its own gives a report of your UPI payments only: salary, card payments and auto-debits aren't in it. The file is deleted once its transactions are saved, unless you choose to keep a copy.
 - **One report per period** (a month, 3 months, a year or everything): money in and out, where it went, cash flow over time, what changed since last time, budgets, savings and every transaction.
 - **Categories that learn.** Rules sort most payments; change one and RupeeTrail remembers that payee next time. UPI payments to people are kept apart from businesses.
 - **Budgets** per category and a monthly savings target, with what's over, near or under.

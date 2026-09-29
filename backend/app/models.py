@@ -51,10 +51,15 @@ class MerchantAlias(BaseModel):
 
 
 class UploadResponse(BaseModel):
-    """PDF upload response"""
-    total: int = Field(..., description="Total transactions found in PDF")
+    """Statement upload response (counts from database.import_statement)"""
+    total: int = Field(..., description="Transactions found in the statement")
     saved: int = Field(..., description="New transactions saved")
-    duplicates: int = Field(..., description="Duplicate transactions skipped")
+    duplicates: int = Field(..., description="Already imported, skipped")
+    replaced: int = Field(0, description="GPay rows replaced by this bank statement's rows")
+    removed: int = Field(0, description="GPay rows this bank statement doesn't have, removed")
+    in_bank_statement: int = Field(0, description="GPay payments already in a bank statement, skipped")
+    not_in_bank_statement: int = Field(0, description="GPay payments on dates a bank statement covers but doesn't have, skipped")
+    source: str = Field('', description="Which reader read it: 'hdfc', 'gpay'")
     message: str = Field(..., description="Success message")
 
 
