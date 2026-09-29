@@ -18,6 +18,7 @@ from pdfminer.pdfdocument import PDFPasswordIncorrect
 
 from .extract import extract_hdfc_transactions
 from .extract_excel import extract_hdfc_transactions_excel
+from .extract_gpay import extract_gpay_transactions
 
 # How many Excel rows to look through for a table header (HDFC's is on row 21)
 EXCEL_SAMPLE_ROWS = 40
@@ -41,12 +42,18 @@ def _looks_like_hdfc(sample: str) -> bool:
     return all(word in sample for word in ('narration', 'withdrawalamt', 'depositamt'))
 
 
+def _looks_like_gpay(sample: str) -> bool:
+    # The table header and the line under every payee
+    return 'date&timetransactiondetailsamount' in sample and 'upitransactionid:' in sample
+
+
 READERS = [
     Reader('hdfc', 'HDFC Bank statement', ('pdf',), _looks_like_hdfc, extract_hdfc_transactions),
     Reader('hdfc', 'HDFC Bank statement', ('xls', 'xlsx'), _looks_like_hdfc, extract_hdfc_transactions_excel),
+    Reader('gpay', 'Google Pay statement', ('pdf',), _looks_like_gpay, extract_gpay_transactions),
 ]
 
-SUPPORTED = 'an HDFC Bank statement (PDF or Excel)'
+SUPPORTED = 'an HDFC Bank statement (PDF or Excel) or a Google Pay statement (PDF)'
 
 
 def _squash(text: str) -> str:
@@ -55,13 +62,19 @@ def _squash(text: str) -> str:
 
 
 def _sample(path: str, file_type: str) -> str:
-    """The start of the file as text: the first PDF page, or the first Excel rows"""
+    """
+    The start of the file as text: the first PDF page, or the first Excel rows
+
+    A PDF page comes twice: laid out by pdfplumber, and as its characters in the order
+    the file draws them. Some PDFs (GPay's) only read correctly the second way.
+    """
     try:
         if file_type == 'pdf':
             with pdfplumber.open(path) as pdf:
                 if not pdf.pages:
                     return ''
-                return pdf.pages[0].extract_text() or ''
+                page = pdf.pages[0]
+                return (page.extract_text() or '') + '\n' + ''.join(c['text'] for c in page.chars)
         df = pd.read_excel(path, sheet_name=0, header=None, nrows=EXCEL_SAMPLE_ROWS)
         return ' '.join(str(v) for v in df.to_numpy().ravel() if pd.notna(v))
     except PDFPasswordIncorrect:

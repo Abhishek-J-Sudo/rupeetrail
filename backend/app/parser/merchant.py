@@ -11,11 +11,21 @@ Extracts clean merchant names from various transaction types:
 
 import re
 import logging
+import string
 
 logger = logging.getLogger(__name__)
 
 # Maximum length for merchant names (prevents footer text or very long strings)
 MAX_MERCHANT_LENGTH = 100
+
+# The narration the GPay reader writes: "Paid to <payee> · UPI ref <id>" (or "Received from").
+# Not GPay's own "UPI Transaction ID": the rule keyword 'ac' would match inside "transaction".
+GPAY_NARRATION = re.compile(r'^(?:Paid to|Received from) (.+) · UPI ref \d+$')
+
+
+def gpay_narration(direction: str, payee: str, upi_id: str) -> str:
+    """The narration stored for a GPay row; direction is 'Paid to' or 'Received from'"""
+    return f"{direction} {' '.join(payee.split())} · UPI ref {upi_id}"
 
 
 def _truncate_merchant(merchant: str) -> str:
@@ -89,6 +99,11 @@ def extract_merchant_name(narration: str) -> str:
     # UPI transactions
     if narration.startswith('UPI-'):
         return _truncate_merchant(_extract_upi_merchant(narration))
+
+    # UPI transactions from a GPay statement
+    gpay = GPAY_NARRATION.match(narration)
+    if gpay:
+        return _truncate_merchant(_extract_gpay_merchant(gpay.group(1)))
 
     # NEFT/IMPS transfers
     if narration.startswith('NEFT-') or narration.startswith('IMPS-'):
@@ -171,6 +186,22 @@ def _extract_upi_merchant(narration: str) -> str:
     merchant = _normalize_merchant_name(merchant)
 
     return merchant if merchant else 'Unknown UPI'
+
+
+def _extract_gpay_merchant(payee: str) -> str:
+    """
+    Clean a payee name as GPay prints it
+
+    GPay shows the registered name, so this only tidies it:
+    "Ashapura_Fast_Food_" -> "Ashapura Fast Food", "M/S.AVADHOOT HOSPITAL" -> "Avadhoot Hospital",
+    "AURUM FM 2" -> "Aurum Fm" (a terminal number, as the UPI reader drops them)
+    """
+    name = payee.replace('_', ' ')
+    name = re.sub(r'^M/S\.?\s*', '', name, flags=re.IGNORECASE)
+    name = re.sub(r'\s+\d+$', '', name.strip())
+    # capwords, not title(): title() turns "McDonald's" into "Mcdonald'S"
+    name = string.capwords(' '.join(name.split()))
+    return _normalize_merchant_name(name) if name else 'Unknown UPI'
 
 
 def _extract_neft_imps_merchant(narration: str) -> str:
@@ -379,7 +410,7 @@ def detect_transaction_type(narration: str) -> str:
     """
     narration_upper = narration.upper()
 
-    if narration.startswith('UPI-'):
+    if narration.startswith('UPI-') or GPAY_NARRATION.match(narration):
         return 'upi'
     elif narration.startswith('NEFT-'):
         return 'neft'
@@ -411,7 +442,7 @@ def is_p2p_transfer(narration: str, merchant: str) -> bool:
     Returns:
         True if likely P2P transfer
     """
-    if not narration.startswith('UPI-'):
+    if detect_transaction_type(narration) != 'upi':
         return False
 
     # Check if merchant name looks like a person (2-3 words)

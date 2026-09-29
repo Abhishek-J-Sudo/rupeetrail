@@ -26,6 +26,7 @@ CATEGORY_RULES = {
     'Food & Dining': {
         'keywords': [
             'swiggy', 'zomato', 'ubereats', 'foodpanda', 'dunzo',
+            'bundl technologies',  # Swiggy's company name, as GPay shows it
             'mcdonald', 'kfc', 'domino', 'pizza', 'subway', 'burger',
             'starbucks', 'cafe', 'coffee', 'restaurant', 'diner',
             'bistro', 'eatery', 'food', 'meal', 'lunch', 'dinner',
@@ -51,6 +52,7 @@ CATEGORY_RULES = {
     'Transportation': {
         'keywords': [
             'uber', 'ola', 'rapido', 'meru cab', 'blusmart',
+            'ani technologies',  # Ola's company name, as GPay shows it
             'toll', 'fastag', 'highway', 'parking',
             'metro', 'railway', 'irctc', 'redbus', 'bus',
             'flight', 'airline', 'airport',
@@ -178,7 +180,7 @@ CATEGORY_RULES = {
             'medplus', 'netmeds', '1mg', 'pharmeasy',
             'health', 'diagnostic', 'lab', 'test',
             'dental', 'dentist', 'eye care', 'optical',
-            'insurance', 'mediclaim', 'healthplus'
+            'insurance', 'mediclaim', 'healthplus', 'star health'
         ],
         'merchants': []
     },
