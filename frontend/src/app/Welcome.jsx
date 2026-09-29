@@ -11,7 +11,7 @@ import { useStorage } from './useStorage';
 const STEPS = [
   {
     title: 'Download your statement',
-    text: 'In HDFC NetBanking, open your account statement, pick the months you want and download it as Excel or PDF.',
+    text: 'In HDFC NetBanking, open your account statement, pick the months you want and download it as Excel or PDF. Or download your statement from the Google Pay app (PDF).',
   },
   {
     title: 'Import it here',
@@ -56,8 +56,8 @@ export default function Welcome({ onFile }) {
             See where your money went.
           </h1>
           <p className="text-[15px] leading-relaxed text-sidebar-muted">
-            Import your HDFC bank statement and get a clear report, month by month: what came in, where it went, what repeats,
-            and how you’re doing against your budgets. It all runs on your computer. No bank login, no account, nothing
+            Import your HDFC bank statement or your Google Pay statement and get a clear report, month by month: what came
+            in, where it went, what repeats, and how you’re doing against your budgets. It all runs on your computer. No bank login, no account, nothing
             uploaded.
           </p>
         </div>
@@ -65,7 +65,7 @@ export default function Welcome({ onFile }) {
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <Card aria-labelledby="welcome-import" className="overflow-hidden">
-          <CardHeader band id="welcome-import" icon={FileUp} title="Import your first statement" subtitle="HDFC savings account · PDF or Excel" />
+          <CardHeader band id="welcome-import" icon={FileUp} title="Import your first statement" subtitle="HDFC (PDF or Excel) · Google Pay (PDF)" />
           <Dropzone onFile={onFile} className="flex-1 justify-center py-14" />
           <StorageFacts info={info} />
         </Card>
