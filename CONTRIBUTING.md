@@ -8,7 +8,7 @@ Not in a commit, an issue, a screenshot or a pasted line, not even with parts bl
 
 ## Getting set up
 
-You need Python 3.10–3.13 and Node.js 20.19 or newer.
+You need Python 3.10–3.14 and Node.js 20.19 or newer.
 
 ```sh
 python start.py --dev

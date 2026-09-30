@@ -50,13 +50,13 @@ It runs on your computer. There's no account, no sign-in and no server: your sta
 
 ## Get started
 
-You need **Python 3.10 to 3.13** ([python.org](https://www.python.org/downloads/); on Windows, tick "Add Python to PATH" while installing).
+You need **Python 3.10 to 3.14** ([python.org](https://www.python.org/downloads/); on Windows, tick "Add Python to PATH" while installing).
 
 1. Download the latest release from the [Releases page](https://github.com/Abhishek-J-Sudo/rupeetrail/releases) and unzip it.
 2. Start it:
    - **Windows:** double-click `start.bat`.
    - **Mac:** double-click `start.command` (the first time, right-click → Open).
-   - **Linux:** run `python3 start.py` in the folder.
+   - **Linux:** run `python3 start.py` in the folder. On Ubuntu or Debian, first run `sudo apt install python3-venv`.
 3. Your browser opens RupeeTrail at http://localhost:5175. The first start takes a few minutes while it installs what it needs; after that it starts in seconds.
 
 Not ready to use your own statement? Click **Try with sample data** on the welcome screen to look around with six months of a made-up person's account. Importing a real statement clears it.
@@ -77,7 +77,7 @@ Read [PRIVACY.md](PRIVACY.md) for exactly what the AI features send.
 
 ## Run from the source code
 
-For development, or to run the latest code. You need Python 3.10–3.13 and [Node.js](https://nodejs.org) 20.19 or newer.
+For development, or to run the latest code. You need Python 3.10–3.14 and [Node.js](https://nodejs.org) 20.19 or newer.
 
 ```sh
 git clone https://github.com/Abhishek-J-Sudo/rupeetrail.git

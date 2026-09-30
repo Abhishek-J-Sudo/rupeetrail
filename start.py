@@ -34,7 +34,7 @@ VENV_PYTHON = VENV / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 PORT = 5175        # the address people open: http://localhost:5175
 DEV_API_PORT = 8000  # --dev only: the API on its own port, Vite on PORT
-SUPPORTED = ((3, 10), (3, 13))  # the pinned packages have ready-made installs for these
+SUPPORTED = ((3, 10), (3, 14))  # the pinned packages have ready-made installs for these
 
 
 def say(msg=""):
@@ -52,21 +52,41 @@ def check_python():
         fail(f"RupeeTrail needs Python {low[0]}.{low[1]} or newer; this is {sys.version.split()[0]}.")
     if sys.version_info[:2] > high:
         say(f"  Note: tested with Python up to {high[0]}.{high[1]}; this is {sys.version.split()[0]}. "
-            "If installing fails, install Python 3.13.")
+            "If installing fails, install Python 3.14.")
+
+
+def has_pip():
+    return VENV_PYTHON.exists() and subprocess.run(
+        [str(VENV_PYTHON), "-m", "pip", "--version"], capture_output=True
+    ).returncode == 0
+
+
+def make_venv():
+    """A fresh backend/venv. Ubuntu and Debian leave venv out of Python unless python3-venv is
+    installed, and a failed try leaves a half-made venv, so that's cleared either way."""
+    shutil.rmtree(VENV, ignore_errors=True)
+    say("Setting up Python for RupeeTrail (first time only)...")
+    try:
+        venv.create(VENV, with_pip=True)
+    except (Exception, SystemExit):  # Debian's venv exits rather than raising
+        pass
+    if not has_pip():
+        shutil.rmtree(VENV, ignore_errors=True)
+        fail("This Python can't set up the environment RupeeTrail runs in.\n"
+             "  On Ubuntu or Debian, install it with:  sudo apt install python3-venv\n"
+             "  and then start RupeeTrail again.")
 
 
 def python_env(requirements):
     """backend/venv with the requirements installed; reinstalls only when the file changes"""
-    if not VENV_PYTHON.exists():
-        say("Setting up Python for RupeeTrail (first time only)...")
-        venv.create(VENV, with_pip=True)
-
     wanted = requirements.name + ":" + hashlib.sha256(
         b"".join(p.read_bytes() for p in (BACKEND / "requirements.txt", requirements))
     ).hexdigest()
     marker = VENV / ".rupeetrail-installed"
     if marker.exists() and marker.read_text() == wanted:
         return
+    if not has_pip():  # not made yet, or left half-made by a failed first start
+        make_venv()
     say("Installing what RupeeTrail needs (a few minutes the first time)...")
     result = subprocess.run(
         [str(VENV_PYTHON), "-m", "pip", "install", "--disable-pip-version-check", "-q", "-r", requirements.name],
